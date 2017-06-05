@@ -10,8 +10,6 @@ import cern.jet.random.engine.RandomEngine;
 import cern.jet.random.engine.RandomSeedGenerator;
 import cern.jet.random.engine.DRand;
 
-
-
 public class MM1QueSimulator {
 
 	 
@@ -48,7 +46,7 @@ public class MM1QueSimulator {
 	  *  returns service rate
 	  */
 	 
-	 public double calculateServiceRate(double lc,double packAv)
+	 public static double calculateServiceRate(double lc,double packAv)
 	 {
 		 return (lc/packAv);
 	 }
@@ -59,7 +57,7 @@ public class MM1QueSimulator {
 	  *
 	  *  returns arrival Rate or workload
 	  */
-	 public double calculateArrivalRate(double servRate, double percentage)
+	 public static double  calculateArrivalRate(double servRate, double percentage)
 	 {
 		 return (percentage/100)*servRate;
 	 }
@@ -68,7 +66,7 @@ public class MM1QueSimulator {
 	  * @param arrivalRate  ,arrvial rate . 
 	  * return arrival average in micro-seconds that is why its is multiplied by 1000000
 	  */
-	 public double calculateArrivalRateAverage(double arrivalRate)
+	 public static double calculateArrivalRateAverage(double arrivalRate)
 	 {
 		 return (1.0/arrivalRate)*1000000; 
 	 }
@@ -90,7 +88,7 @@ public class MM1QueSimulator {
 	
 	/*
 	 * PLEASE IGNORE THIS METHOD FOR NOW
-	 * MENANT FOR THE LAST PART OF THE PROJECT , NOT YET TESTED .
+	 * MEANT FOR THE LAST PART OF THE PROJECT , NOT YET TESTED .
 	 * 
 	 */
 
@@ -137,7 +135,7 @@ public class MM1QueSimulator {
 				completeTrans1 = (float) (transmissionTime1 + arrival1);
 				if(counter <2)
 				{
-					System.out.println("packet " +(counter)+" Arrial Time "+ (arrival1/1000000) +"  Quieing Time "+ queingTime +"  "+" StartTransmision  "+ completeTrans1+ " " );
+					System.out.println("packet " +(counter)+" arrial time "+ (arrival1/1000000) +"  queing time "+ queingTime +"  "+" start transmision  "+ completeTrans1+ " " );
 				}
 				if(temp > arrival1)
 				{
@@ -163,12 +161,10 @@ public class MM1QueSimulator {
 					intensity = (AverageArrivalTime/newServiceTime);
 					
 					System.out.println("........................................................................................................................................................................ \n");
-					System.out.println("\n Average service time " +newServiceTime  + " Average Arrival Time " + AverageArrivalTime +" Intensity "+ intensity +" Average Queing Time "  + AverageQueingTime  + " "+  " Counter "+ counter );
+					System.out.println("\nAverage service time " +newServiceTime  + " Average Arrival Time " + AverageArrivalTime +" Intensity "+ intensity +" Average Queing Time "  + AverageQueingTime  + " "+  " Counter "+ counter );
 					
 				}
 				counter+=1;
-				
-				
 			}
 		System.out.println("\nTotal counter " +counter);
 		in.close();	
@@ -177,66 +173,57 @@ public class MM1QueSimulator {
 		catch(Exception e )
 		{
 			System.out.println(e.getMessage());
-		}
-		
-		
+		}		
 	}
-
-	/*Writes generated piosson distributed values to a file.
-	 * Not yet tested please ignore. For now output is printed out on consol 
-	 * 
-	 */
-	public static void writePoissonToFile(double packetLoad,double meanInterArrival, int meanPacketSize)
+	/* Writes generated Poisson distributed values to a file.
+	 * output is printed on console and is written to trace file 
+	 * @Param workload is work load : 10.0 ,20.0 up to... 90.0
+	 * @Param link linkCapacity, given link capacity ,
+	 * @Param averagePacketSize average packet size,
+	 * @param  pathToTracefile absolute path where trace file will be saved(please specify full path)
+	 * Note serviceRate = linkCapacity /averagePacketSize
+	 */		
+	public static void writeToFile(double workLoad,double linkCapacity,double averagePacketSize,String pathToTracefile)
 	{
+		double servRate = calculateServiceRate(linkCapacity,averagePacketSize);
+		double arrRate =calculateArrivalRate(servRate, workLoad);
+		double averInterArrivalRate =calculateArrivalRateAverage(arrRate);
+		Poisson interArrival;
+		Poisson packetSize;
 		String content="";
-			try (BufferedWriter bw = new BufferedWriter(new FileWriter(FILENAME,true))) {
-				
-				System.out.println("Writting to file \n ");
-				for (int i =0;i<packetLoad;i++)
-				{
-					//content =poisson(meanInterArrival) +","+ poisson(meanPacketSize)+"\n";
-					bw.write(content);
-					
-				}
-				System.out.println("Done");
-
-			} catch (IOException e) {
-
-				e.printStackTrace();
-
-			}
-		
-	}
-	public static void main(String[] args)
-	{
-		//Initialize  MM1QueSimulator object using default constructor
-		
-		MM1QueSimulator myQueSimulator = new MM1QueSimulator();
-		
-		/* 10 % run 100 times, 
-		 * 20 % run 100 times....90% ect 
-		 * In each of the 100 runs create a new random engine , with a new seed. this can be optimized
-		 * 
-		 */
-		for(double i = 10.0; i<=90.0;i+=10.0)
+		try (BufferedWriter bw = new BufferedWriter(new FileWriter(pathToTracefile,true))) 
 		{
-			arrivalRate =myQueSimulator.calculateArrivalRate(serviceRate, i);
-			averageInterArrivalRate =myQueSimulator.calculateArrivalRateAverage(arrivalRate);
-			for(int j=0;j<100;j++)
+			
+			System.out.println("Writting to file \n ");
+			for(int j=0;j<100;j++) 
 			{
 				engine = new DRand();
-				poisson =new Poisson(averageInterArrivalRate,engine);
-				poisson2 =new Poisson(packetSizeMean,engine);
+				interArrival =new Poisson(averInterArrivalRate,engine);
 				
-				for(int k = 0;k<arrivalRate;k++) 
+				packetSize =new Poisson(averagePacketSize,engine);
+				for(int k=0;k<50000;k++)
 				{
-					System.out.println(poisson.nextInt() +","+ poisson2.nextInt());	
+					content=interArrival.nextInt()+","+packetSize.nextInt()+"\n";
+					bw.write(content);
+					System.out.println(content);	
 				}
 				
 			}
-			
+			//content =poisson(meanInterArrival) +","+ poisson(meanPacketSize)+"\n";
+			System.out.println("Done");
+
+		} 
+		catch (IOException e) 
+		{
+
+			e.printStackTrace();
+
 		}
-		
+	}
+	
+	public static void main(String[] args)
+	{
+		writeToFile(10.0,100000000.0,1000.0,"/home/hltuser/networksLoad10.txt");	
 
 	}
 
